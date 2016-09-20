@@ -6,6 +6,70 @@
 ----  LICENSE file in the root directory of this source tree. 
 ----
 local ok,cunn = pcall(require, 'fbcunn')
+--[[
+pcall(f, ...)
+Calls function f with the given arguments in protected mode.
+This means that any error inside f is not propagated; instead, pcall catches the error and returns a status code. 
+Its first result is the status code (a boolean), which is true if the call succeeds without errors. In such case, 
+pcall also returns all results from the call, after this first result. In case of any error, pcall returns false plus 
+the error message.
+
+Parameters
+f : function to be call in protected mode.
+... : function arguments.
+Return values
+#boolean: true plus the result of f function if its call succeeds without errors.
+#boolean, #string: false plus the error message in case of any error.
+
+
+8.4 – Error Handling and Exceptions
+
+For many applications, you do not need to do any error handling in Lua. Usually, the application program does this handling. 
+All Lua activities start from a call by the application, usually asking Lua to run a chunk. 
+If there is any error, this call returns an error code and the application can take appropriate actions. 
+In the case of the stand-alone interpreter, its main loop just prints the error message and continues showing the prompt 
+and running the commands.
+
+If you need to handle errors in Lua, you should use the pcall function (protected call) to encapsulate your code.
+
+Suppose you want to run a piece of Lua code and to catch any error raised while running that code. Your first step is to 
+encapsulate that piece of code in a function; let us call it foo:
+
+    function foo ()
+        ...
+      if unexpected_condition then error() end
+        ...
+      print(a[i])    -- potential error: `a' may not be a table
+        ...
+    end
+
+Then, you call foo with pcall:
+
+    if pcall(foo) then
+      -- no errors while running `foo'
+      ...
+    else
+      -- `foo' raised an error: take appropriate actions
+      ...
+    end
+
+Of course, you can call pcall with an anonymous function:
+
+    if pcall(function () ... end) then ...
+    else ...
+
+The pcall function calls its first argument in protected mode, so that it catches any errors while the function is running. 
+If there are no errors, pcall returns true, plus any values returned by the call. Otherwise, it returns false, plus the error 
+message.
+
+Despite its name, the error message does not have to be a string. Any Lua value that you pass to error will be returned by pcall:
+
+    local status, err = pcall(function () error({code=121}) end)
+    print(err.code)  -->  121
+
+These mechanisms provide all we need to do exception handling in Lua. We throw an exception with error and catch it with pcall. 
+The error message identifies the kind or error. 
+]]--
 if not ok then
     ok,cunn = pcall(require,'cunn')
     if ok then
@@ -13,10 +77,38 @@ if not ok then
         LookupTable = nn.LookupTable
     else
         print("Could not find cunn or fbcunn. Either is required")
-        os.exit()
+        os.exit()   -- Exit the process and return to the console.
     end
 else
-    deviceParams = cutorch.getDeviceProperties(1)
+    deviceParams = cutorch.getDeviceProperties(1) -- Get the information of GPU device as following:
+    --[[
+    {
+  computeMode : 0
+  memPitch : 2147483647
+  canMapHostMemory : 1
+  warpSize : 32
+  pciDeviceID : 0
+  pciBusID : 1
+  totalConstMem : 65536
+  pciDomainID : 0
+  integrated : 0
+  deviceOverlap : 1
+  maxThreadsPerBlock : 1024
+  clockRate : 1771500
+  maxTexture1D : 131072
+  minor : 1
+  name : "GeForce GTX 1060 6GB"
+  freeGlobalMem : 5968822272
+  maxTexture1DLinear : 134217728
+  kernelExecTimeoutEnabled : 1
+  sharedMemPerBlock : 49152
+  major : 6
+  totalGlobalMem : 6365773824
+  regsPerBlock : 65536
+  textureAlignment : 512
+  multiProcessorCount : 10
+}
+    ]]--
     cudaComputeCapability = deviceParams.major + deviceParams.minor/10
     LookupTable = nn.LookupTable
 end
