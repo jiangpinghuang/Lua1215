@@ -16,7 +16,7 @@ if not ok then
     print(deviceParams)    
     cudaComputeCapability = deviceParams.major + deviceParams.minor/10
     print(cudaComputeCapability)
-    LookupTable = nn.LookupTable
+    --LookupTable = nn.LookupTable
     
   else
     print("Could not find cunn or fbcunn. Either is required!")
@@ -40,13 +40,13 @@ local params = {batch_size=20,
                 seq_length=20,
                 layers=2,
                 decay=2,
-                rnn_size=200,
+                rnn_size=50,
                 dropout=0,
                 init_weight=0.1,
                 lr=1,
                 vocab_size=10000,
                 max_epoch=4,
-                max_max_epoch=13,
+                max_max_epoch=10,
                 max_grad_norm=5
                 }
 print(params)
@@ -155,7 +155,7 @@ local function lstm(x, prev_c, prev_h)
 
   local next_c           = nn.CAddTable()({
       nn.CMulTable()({forget_gate, prev_c}),
-      nn.CMulTable()({in_gate,     in_transform})
+      nn.CMulTable()({in_gate, in_transform})
   })
   local next_h           = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
 
@@ -235,22 +235,22 @@ function g_cloneManyTimes(net, T)
   return clones
 end
 
-function g_replace_table(to, from)
+local function g_replace_table(to, from)
   assert(#to == #from)
   for i = 1, #to do
     to[i]:copy(from[i])
   end
 end
 
-function g_f3(f)
+local function g_f3(f)
   return string.format("%.3f", f)
 end
 
-function g_d(f)
+local function g_d(f)
   return string.format("%d", torch.round(f))
 end
 
-function g_disable_dropout(node)
+local function g_disable_dropout(node)
   if type(node) == "table" and node.__typename == nil then
     for i = 1, #node do
       node[i]:apply(g_disable_dropout)
@@ -262,7 +262,7 @@ function g_disable_dropout(node)
   end
 end
 
-function g_enable_dropout(node)
+local function g_enable_dropout(node)
   if type(node) == "table" and node.__typename == nil then
     for i = 1, #node do
       node[i]:apply(g_enable_dropout)
@@ -303,7 +303,7 @@ local function run_test()
   g_enable_dropout(model.rnns)
 end
 
-local function fp(state)
+function fp(state)
   g_replace_table(model.s[0], model.start_s)
   if state.pos + params.seq_length > state.data:size(1) then
     reset_state(state)
@@ -319,7 +319,7 @@ local function fp(state)
   return model.err:mean()
 end
 
-local function bp(state)
+function bp(state)
   paramdx:zero()
   reset_ds()
   for i = params.seq_length, 1, -1 do
@@ -350,7 +350,6 @@ local function main()
   state_test =  {data=transfer_data(testdataset(params.batch_size))}
   print("Network parameters:")
   print(params)
-  
   local states = {state_train, state_valid, state_test}
   for _, state in pairs(states) do
     reset_state(state)
@@ -397,7 +396,7 @@ local function main()
     end
   end
   run_test()
-  print("Training is over.")  
+  print("Training is over.")
 end
 
 main()
