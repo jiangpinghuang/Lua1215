@@ -36,7 +36,7 @@ local file = require('pl.file')
 local vocab_idx = 0
 local vocab_map = {}
 
-local params = {batch_size=20,
+local params = {batch_size=5,
                 seq_length=20,
                 layers=2,
                 decay=2,
@@ -45,9 +45,9 @@ local params = {batch_size=20,
                 init_weight=0.1,
                 lr=1,
                 vocab_size=10000,
-                max_epoch=4,
-                max_max_epoch=10,
-                max_grad_norm=5
+                max_epoch=2,
+                max_max_epoch=5,
+                max_grad_norm=3
                 }
 print(params)
 
@@ -78,53 +78,100 @@ end
 
 local function replicate(x_inp, batch_size)
    local s = x_inp:size(1)
+   print('s: ')
+   print(s)
+   print(torch.floor(s / batch_size))
+   print('x: ')
+   print(x)
    local x = torch.zeros(torch.floor(s / batch_size), batch_size)
+   print(x)
    for i = 1, batch_size do
+     print("(i - 1) * s / batch_size: ")
+     print((i - 1) * s / batch_size)
      local start = torch.round((i - 1) * s / batch_size) + 1
+     print('start: ')
+     print(start)
      local finish = start + x:size(1) - 1
+     print("finished: ")
+     print(finish)
+     print(x_inp:sub(start, finish))
+     print(1, x:size(1), i, i)
+     print(x:sub(1, x:size(1), i, i):copy(x_inp:sub(start, finish)))
      x:sub(1, x:size(1), i, i):copy(x_inp:sub(start, finish))
+     print('x: ')
+     print(x)
    end
    return x
 end
 
 local function load_data(fname)
    local data = file.read(fname)
+   print('filename: ')
+   print(fname)
+   print('data: ')
+   print(data)
    data = stringx.replace(data, '\n', '<eos>')
+   print('replaced data: ')
+   print(data)
    data = stringx.split(data)
+   print('split data: ')
+   print(data)
    print(string.format("Loading %s, size of data = %d", fname, #data))
    local x = torch.zeros(#data)
+   print('x:')
+   print(x)
    for i = 1, #data do
       if vocab_map[data[i]] == nil then
+         print('data[i]: ')
+         print(data[i])
          vocab_idx = vocab_idx + 1
          vocab_map[data[i]] = vocab_idx
       end
       x[i] = vocab_map[data[i]]
    end
+   print('vocab_map: ')
+   print(vocab_map)
+   print('vocab_idx: ')
+   print(vocab_idx)
+   print('x_a: ')
+   print(x)
    return x
 end
 
 local function traindataset(batch_size)
-   local x = load_data("/home/hjp/Workshop/Model/lstm/data/ptb.train.txt")
+   local x = load_data("/home/hjp/Workshop/Model/data/tmp/ptb.train.txt")
+   -- Total length will be split into batch_size classes by sequence cut.
    x = replicate(x, batch_size)
    return x
 end
 
 local function testdataset(batch_size)
-   local x = load_data("/home/hjp/Workshop/Model/lstm/data/ptb.test.txt")
+   local x = load_data("/home/hjp/Workshop/Model/data/tmp/ptb.test.txt")
+   print('x:size(1):')
+   print(x:size(1))
+   print('x: ')
+   print(x)
+   -- Copy the sequence for test.
    x = x:resize(x:size(1), 1):expand(x:size(1), batch_size)
+   print('x: ')
+   print(x)
    return x
 end
 
 local function validdataset(batch_size)
-   local x = load_data("/home/hjp/Workshop/Model/lstm/data/ptb.valid.txt")
+   local x = load_data("/home/hjp/Workshop/Model/data/tmp/ptb.valid.txt")
    x = replicate(x, batch_size)
    return x
 end
 
 local function reset_state(state)
   state.pos = 1
+  print("state: ")
+  print(state)
   if model ~= nil and model.start_s ~= nil then
+    print('if!')
     for d = 1, 2 * params.layers do
+      print('for!')
       model.start_s[d]:zero()
     end
   end
@@ -164,12 +211,28 @@ end
 
 local function create_network()
   local x                = nn.Identity()()
+  print('x: ')
+  print(x)
   local y                = nn.Identity()()
   local prev_s           = nn.Identity()()
+  print(params.vocab_size)
+  print(params.rnn_size)
+  print('LookupT: ')
+  print({[0]=LookupTable(10000, 50)(nn.Identity()())})
+  print({[1]=LookupTable(10000, 50)(nn.Identity()())})
+  print({[2]=LookupTable(10000, 50)(nn.Identity()())})
+  print({[3]=LookupTable(10000, 50)(nn.Identity()())})
   local i                = {[0] = LookupTable(params.vocab_size,
                                                     params.rnn_size)(x)}
+  print('i: ')
+  print(i)
+  print('i is ok!')
   local next_s           = {}
-  local split         = {prev_s:split(2 * params.layers)}
+  print('next_s: ')
+  print(next_s)
+  print('split: ')
+  local split            = {prev_s:split(2 * params.layers)}
+  print(split)
   for layer_idx = 1, params.layers do
     local prev_c         = split[2 * layer_idx - 1]
     local prev_h         = split[2 * layer_idx]
@@ -192,10 +255,20 @@ end
 local function setup()
   print("Creating a RNN LSTM network.")
   local core_network = create_network()
+  print('core_network: ')
+  print(core_network)
   paramx, paramdx = core_network:getParameters()
+  print('paramx: ')
+  --print(paramx)
+  print('paramdx: ')
+  --print(paramdx)
+  print('model: ')
+  print(model)
   model.s = {}
   model.ds = {}
   model.start_s = {}
+  print('model again: ')
+  print(model)
   for j = 0, params.seq_length do
     model.s[j] = {}
     for d = 1, 2 * params.layers do
@@ -348,10 +421,15 @@ local function main()
   state_train = {data=transfer_data(traindataset(params.batch_size))}
   state_valid =  {data=transfer_data(validdataset(params.batch_size))}
   state_test =  {data=transfer_data(testdataset(params.batch_size))}
+  print(state_train)
+  print(state_valid)
+  print(state_test)
   print("Network parameters:")
   print(params)
   local states = {state_train, state_valid, state_test}
+  print(states)
   for _, state in pairs(states) do
+    print(state)
     reset_state(state)
   end
   setup()
