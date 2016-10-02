@@ -2,9 +2,9 @@ require 'nn'
 require 'nngraph'
 require 'hdf5'
 
-require 's2sa.data'
-require 's2sa.models'
-require 's2sa.model_utils'
+require 'data'
+require 'models'
+require 'model_utils'
 
 cmd = torch.CmdLine()
 

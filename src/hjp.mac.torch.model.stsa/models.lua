@@ -1,5 +1,5 @@
-require 's2sa.memory'
-require 's2sa.plinear'
+require 'memory'
+require 'plinear'
 
 --kept for compatibilty reason with earlier model
 torch.class('nn.LinearNoBias', 'nn.Linear')

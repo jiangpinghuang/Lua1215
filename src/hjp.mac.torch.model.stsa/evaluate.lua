@@ -1,4 +1,4 @@
-local beam = require 's2sa.beam'
+local beam = require 'beam'
 
 function main()
   beam.init(arg)

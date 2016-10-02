@@ -2,9 +2,9 @@ require 'nn'
 require 'string'
 require 'nngraph'
 
-require 's2sa.models'
-require 's2sa.data'
-require 's2sa.plinear'
+require 'models'
+require 'data'
+require 'plinear'
 
 local cmd = torch.CmdLine()
 -- file location

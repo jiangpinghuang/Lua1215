@@ -2,9 +2,9 @@ require 'nn'
 require 'string'
 require 'nngraph'
 
-require 's2sa.models'
-require 's2sa.data'
-require 's2sa.scorer'
+require 'models'
+require 'data'
+require 'scorer'
 
 path = require 'pl.path'
 stringx = require 'pl.stringx'

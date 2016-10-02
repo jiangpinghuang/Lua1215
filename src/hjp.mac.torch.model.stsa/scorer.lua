@@ -1,5 +1,5 @@
-require 's2sa.scorers.bleu'
-require 's2sa.scorers.gleu'
+require 'bleu'
+require 'gleu'
 
 scorers = {
   bleu=get_bleu,
