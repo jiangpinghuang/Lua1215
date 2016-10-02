@@ -44,8 +44,7 @@ We are going to be working with some example data in `data/` folder.
 First run the data-processing code
 
 ```
-python preprocess.py --srcfile data/src-train.txt --targetfile data/targ-train.txt
---srcvalfile data/src-val.txt --targetvalfile data/targ-val.txt --outputfile data/demo
+python preprocess.py --srcfile data/src-train.txt --targetfile data/targ-train.txt --srcvalfile data/src-val.txt --targetvalfile data/targ-val.txt --outputfile data/demo
 ```
 
 This will take the source/target train/valid files (`src-train.txt, targ-train.txt,
