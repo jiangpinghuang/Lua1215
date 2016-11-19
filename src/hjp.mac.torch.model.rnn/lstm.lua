@@ -1,6 +1,13 @@
 require('nn')
 require('nngraph')
 
+local file = require('pl.file')
+local stringx = require('pl.stringx')
+
+local ptb_path = "./data/"
+local vocab_idx = 0
+local vocab_map = {}
+
 local ok, cunn = pcall(require, 'fbcunn')
 
 if not ok then
@@ -55,10 +62,9 @@ local model = {}
 local paramx, paramdx
 
 local function lstm(x, prev_c, prev_h)
-  local i2h = nn.Linear(params.rnn_size, 4 * params.rnn_size)(x)
-  local h2h = nn.Linear(params.rnn_size, 4 * params.rnn_size)(prev_h)
-  local gates = nn.CAddTable()({i2h, h2h})
-  
+  local i2h   = nn.Linear(params.rnn_size, 4 * params.rnn_size)(x)
+  local h2h   = nn.Linear(params.rnn_size, 4 * params.rnn_size)(prev_h)
+  local gates = nn.CAddTable()({i2h, h2h})  
   local reshaped_gates  = nn.Reshape(4, params.rnn_size)(gates)
   local sliced_gates    = nn.SplitTable(2)()
   local in_gate         = nn.Sigmoid()(nn.SelectTable(1)(sliced_gates))
@@ -259,6 +265,126 @@ local function main()
   end
   run_test()
   print("Training is over.")
+end
+
+local function replicate(x_inp, batch_size)
+  local s = x_inp:size(1)
+  local x = torch.zeros(torch.floor(s / batch_size), batch_size)
+  for i = 1, batch_size do
+    local start = torch.round((i - 1) * s / batch_size) + 1
+    local finish = start + x:size(1) - 1
+    x:sub(1, x:size(1), i, i):copy(x_inp:sub(start, finish))
+  end
+  return x
+end
+
+local function load_data(fname)
+  local data = file.read(fname)
+  data = stringx.replace(data, '\n', '<eos>')
+  data = stringx.split(data)
+  print(string.format("Loading %s, size of data = %d", fname, #data))
+  local x = torch.zeros(#data)
+  for i = 1, #data do
+    if vocab_map[data[i]] == nil then
+      vocab_idx = vocab_idx + 1
+      vocab_map[data[i]] = vocab_idex
+    end
+    x[i] = vocab_map[data[i]]
+  end
+  return x
+end
+
+local function train_data(batch_size)
+  local x = load_data(ptb_path .. "ptb.train.txt")
+  x = replicate(x, batch_size)
+  return x
+end
+
+local function test_data(batch_size)
+  local x = load_data(ptb_path .. "ptb.test.txt")
+  x = x:resize(x:size(1), 1):expand(x:size(1), batch_size)
+  return x
+end
+
+local function valid_data(batch_size)
+  local x = load_data(ptb_path .. "ptb.valid.txt")
+  x = replicate(x, batch_size)
+  return x
+end
+
+function g_disable_dropout(node)
+  if type(node) == "table" and node.__typename == nil then
+    for i = 1, #node do 
+      node[i]:apply(g_disable_dropout)
+    end
+    return
+  end
+  if string.match(node.__typename, "Dropout") then
+    node.train = false
+  end
+end
+
+function g_enable_dropout(node)
+  if type(node) == "table" and node.__typename == nil then
+    for i = 1, #node do
+      node[i]:apply(g_enable_dropout)
+    end
+    return
+  end
+  if string.match(node.__typename, "Dropout") then
+    node.train = true
+  end
+end
+
+function g_cloneManyTimes(net, T)
+  local clones = {}
+  local params, gradParams = net:parameters()
+  local mem = torch.MemoryFile("w"):binary()
+  mem:writeObject(net)
+  
+  for t = 1, T do
+    local reader = torch.MemoryFile(mem:storage(), "r"):binary()
+    local clone = reader:readerObject()
+    reader:close()
+    local cloneParams, cloneGradParams = clone:parameters()
+    for i = 1, #params do
+      cloneParams[i]:set(params[i])
+      cloneGradParams[i]:set(gradParams[i])
+    end
+    clones[t] = clone
+    collectgarbage()
+  end
+  mem:close()
+  return clones
+end
+
+function g_init_gpu(args)
+  local gpuidx = args
+  gpuidx = gpuidx[1] or 1
+  print(string.format("Using %s-th gpu", gpuidx))
+  cutorch.setDevice(gpuidx)
+  g_make_deterministic(1)
+end
+
+function g_make_deterministic(seed)
+  torch.manualSeed(seed)
+  cutorch.manualSeed(seed)
+  torch.zeros(1, 1):cuda():uniform()
+end
+
+function g_replace_table(to, from)
+  assert(#to == #from)
+  for i = 1, #to do 
+    to[i]:copy(from[i])
+  end
+end
+
+function g_f3(f)
+  return string.format("%.3f", f)
+end
+
+function g_d(f)
+  return string.format("%d", torch.round(f))
 end
 
 main()
