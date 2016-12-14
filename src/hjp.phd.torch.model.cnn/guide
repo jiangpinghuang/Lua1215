@@ -1,0 +1,10 @@
+#1:		sentence to words.
+#2:		word to characters.
+#3:		character to vector.
+#4: 	max length of word.
+#5: 	padding the length of word with zero.
+#6: 	different convolution kernel filters with different widths.
+#7: 	pooling operation for mapping feature representation.
+#8:		concatenate feature vector for word representation.
+#9: 	refer to both lstm-char-cnn and seq2seq-attn models.
+#10:	firstly implement convolution for CPU, and then for convolution on GPU.
