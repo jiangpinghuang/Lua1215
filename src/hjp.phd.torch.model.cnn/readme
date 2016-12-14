@@ -1,0 +1,55 @@
+Character-Aware Convolutional Neural Network for Paraphrase Identification
+==========================================================================
+
+
+## Information:
+- Author: Jiangping Huang.
+- Date: Wed, 14 Dec, 2016.
+- E-Mail: hjp@whu.edu.cn.
+
+
+## Description:
+Code to train convolutional neural network paraphrase detection models as 
+described in our ICONIP 2016 paper.
+
+
+## Features:
+- Character-level input for convolutional neural networks.
+- Dynamic k-max pooling operation on feature map matrices.
+- Variable sentence sequence to fixed-length feature vector.
+- Both CPU and GPU enabled for implemented this code.
+- Both narrow and wide convolution operations are considered.
+
+
+## Citations:
+If you make use of this code in your research, please cite our paper:
+@InProceedings{huang-yao-ji:2016:ICONIP,
+  author    = {Jiangping, Huang and Shuxin, Yao and Donghong, Ji},
+  title     = {Character-Aware Convolutional Neural Network for Paraphrase Identification},
+  booktitle = {Proceedings of the 2016 International Conference on Neural Information Processing},
+  year      = {2016},
+}
+
+
+## Requirements:
+- Torch.
+- Cuda.
+
+
+## Files:
+readme		- this file.
+train.lua	- train file.
+test.lua	- test file.
+model.lua	- model file.
+
+
+## Examples:
+- prepare the data
+
+- train the model
+
+- test the model
+
+
+## Note:
+Our code partially refer to Yoon Kim's work "Convolutional neural network for sentence classification (EMNLP 2014)".
